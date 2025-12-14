@@ -30,6 +30,8 @@ To regenerate the data or check connection status:
 python prepare_data.py
 ```
 
+## AI use disclosure
 
+The code in this respository was generated with the assistance of Google's Gemini 3 Pro Preview model.
 
 

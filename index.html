@@ -22,18 +22,28 @@
             color: #333;
             box-shadow: 0 0 15px rgba(0,0,0,0.2);
             border-radius: 5px;
-            min-width: 150px;
+            min-width: 180px; /* Increased width to prevent text wrapping */
         }
-        .legend h4 { margin: 0 0 5px; font-size: 14px; }
+        .legend h4 { margin: 0 0 8px; font-size: 14px; }
         
-        /* HOLC Color Squares */
+        /* Flex Container for Legend Rows (Fixes alignment issues) */
+        .legend-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        /* The Box Icons */
         .legend i.box {
             width: 18px;
             height: 18px;
-            float: left;
             margin-right: 8px;
-            opacity: 0.7;
+            opacity: 1; 
+            border: 3px solid;
+            display: inline-block;
+            flex-shrink: 0; /* Prevents box from squishing if text wraps */
         }
+        .legend i.filled { border: none; }
 
         /* Temperature Gradient */
         .grad-bar {
@@ -73,72 +83,91 @@
         crossorigin=""></script>
 
 <script>
-    // --- Configuration ---
-    // 1. Map Center (Lawrence, MA)
+    // --- 1. Map Setup ---
     var map = L.map('map').setView([42.7070, -71.1631], 13);
 
-    // 2. Base Layer (Simple Light Gray)
-    var baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    // --- 2. Permanent Background Layer ---
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO',
         subdomains: 'abcd',
         maxZoom: 20
     }).addTo(map);
 
-    // 3. Data Layers
+    // --- 3. Data Layers (Radio Button Options) ---
     
-    // A. Tree Canopy (ArcGIS)
-    var canopyUrl = 'https://tiles.arcgis.com/tiles/StPsG80YRtvnlCJ8/arcgis/rest/services/TC_LMAmetro/MapServer/tile/{z}/{y}/{x}?cacheKey=a9b6a42a445cbfe4';
-    var canopyLayer = L.tileLayer(canopyUrl, {
+    // A. Tree Canopy
+    var canopyLayer = L.tileLayer('https://tiles.arcgis.com/tiles/StPsG80YRtvnlCJ8/arcgis/rest/services/TC_LMAmetro/MapServer/tile/{z}/{y}/{x}?cacheKey=a9b6a42a445cbfe4', {
         opacity: 0.65,
-        attribution: 'Tree Canopy &copy; Groundwork Lawrence'
+        attribution: 'Tree Canopy &copy; Groundwork Lawrence',
+        maxNativeZoom: 16,
+        maxZoom: 22
     });
 
-    // B. Surface Temperature (ArcGIS)
-    var tempUrl = 'https://tiles.arcgis.com/tiles/StPsG80YRtvnlCJ8/arcgis/rest/services/LST_LMAmetro/MapServer/tile/{z}/{y}/{x}';
-    var tempLayer = L.tileLayer(tempUrl, {
+    // B. Surface Temperature
+    var tempLayer = L.tileLayer('https://tiles.arcgis.com/tiles/StPsG80YRtvnlCJ8/arcgis/rest/services/LST_LMAmetro/MapServer/tile/{z}/{y}/{x}', {
         opacity: 0.60,
-        attribution: 'Surface Temp &copy; Groundwork Lawrence'
+        attribution: 'Surface Temp &copy; Groundwork Lawrence',
+        maxNativeZoom: 16,
+        maxZoom: 22
     });
 
-    // C. Redlining (GeoJSON - Loaded via Fetch)
+    // C. No Data
+    var noDataLayer = L.layerGroup([]); 
+
+    // --- 4. Redlining Layer (Overlay) ---
     var redliningLayer = L.geoJSON(null, {
         style: styleRedlining,
         onEachFeature: onEachFeature
     });
 
-    // Load GeoJSON File
     fetch('lawrence_redlining.geojson')
         .then(response => response.json())
         .then(data => {
             redliningLayer.addData(data);
-            redliningLayer.addTo(map); // Default: Add to map
+            redliningLayer.addTo(map); 
         })
         .catch(err => console.error("Error loading GeoJSON:", err));
 
+    // --- 5. Layer Controls ---
+    var dataLayers = {
+        "Tree Canopy": canopyLayer,
+        "Surface Temperature": tempLayer,
+        "None (Streets Only)": noDataLayer
+    };
 
-    // --- Styling Functions ---
+    var overlays = {
+        "Redlining Zones": redliningLayer
+    };
+
+    canopyLayer.addTo(map);
+    L.control.layers(dataLayers, overlays, { collapsed: false }).addTo(map);
+
+    // --- 6. Styling & Legends ---
+
     function getHolcColor(grade) {
         switch (grade) {
-            case 'A': return '#76a865'; // Green
-            case 'B': return '#7cb5bd'; // Blue
-            case 'C': return '#e6c236'; // Yellow
-            case 'D': return '#d9838d'; // Red
+            case 'A': return '#76a865'; 
+            case 'B': return '#7cb5bd'; 
+            case 'C': return '#e6c236'; 
+            case 'D': return '#d9838d'; 
             default: return '#cccccc';
         }
     }
 
     function styleRedlining(feature) {
+        var color = getHolcColor(feature.properties.grade);
         return {
-            fillColor: getHolcColor(feature.properties.grade),
-            weight: 2,
-            opacity: 1,
-            color: 'white', 
-            dashArray: '3',
-            fillOpacity: 0.3 // More transparent to see data layers underneath
+            color: color,       
+            weight: 4,          
+            opacity: 1,         
+            fillColor: color,   
+            fillOpacity: 0.0,   
+            interactive: true   
         };
     }
 
     function onEachFeature(feature, layer) {
+        layer.setStyle({ fillOpacity: 0.01 }); 
         var content = `
             <strong>HOLC Grade: ${feature.properties.grade}</strong><br>
             Area ID: ${feature.properties.label || feature.properties.holc_id}<br>
@@ -147,61 +176,54 @@
         layer.bindPopup(content);
     }
 
-    // --- Controls & UI ---
-
-    // Layer Control (Switches)
-    var overlayMaps = {
-        "Tree Canopy": canopyLayer,
-        "Surface Temperature": tempLayer,
-        "Redlining (HOLC)": redliningLayer
-    };
-
-    // Default: Show Canopy
-    canopyLayer.addTo(map);
-    
-    L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
-
-    // Legend
-    var legend = L.control({position: 'bottomright'});
-    legend.onAdd = function (map) {
-        var div = L.DomUtil.create('div', 'info legend');
-        
-        // 1. Redlining Section
-        div.innerHTML += '<h4>Redlining Grade</h4>';
-        var grades = ['A', 'B', 'C', 'D'];
-        var labels = ['Best', 'Desirable', 'Declining', 'Hazardous'];
-        
-        for (var i = 0; i < grades.length; i++) {
-            div.innerHTML +=
-                '<i class="box" style="background:' + getHolcColor(grades[i]) + '"></i> ' +
-                grades[i] + ' (' + labels[i] + ')<br>';
-        }
-
-        // 2. Temperature Section
-        div.innerHTML += '<hr style="border:0; border-top:1px solid #ddd; margin: 10px 0;">';
-        div.innerHTML += '<h4>Surface Temp</h4>';
-        div.innerHTML += '<div class="grad-bar"></div>';
-        div.innerHTML += '<div class="grad-labels"><span>Cool</span><span>Hot</span></div>';
-        
-        // 3. Tree Canopy Section
-        div.innerHTML += '<div style="margin-top:5px;"><i class="box" style="background:#228B22;"></i> Tree Canopy</div>';
-
-        return div;
-    };
-    legend.addTo(map);
-
-    // Info Title
+    // Info Box
     var info = L.control({ position: 'topright' });
     info.onAdd = function(map) {
         var div = L.DomUtil.create('div', 'info-box');
         div.innerHTML = `
             <h3>Lawrence, MA</h3>
             <p><strong>Climate & Equity Overlay</strong></p>
-            <p><small>Toggle layers to compare historical redlining <br>with modern environmental data.</small></p>
         `;
         return div;
     };
     info.addTo(map);
+
+    // Legend
+    var legend = L.control({position: 'bottomright'});
+    legend.onAdd = function (map) {
+        var div = L.DomUtil.create('div', 'info legend');
+        
+        // Redlining
+        div.innerHTML += '<h4>Redlining Zones</h4>';
+        var grades = ['A', 'B', 'C', 'D'];
+        var labels = ['Best', 'Desirable', 'Declining', 'Hazardous'];
+        
+        for (var i = 0; i < grades.length; i++) {
+            var col = getHolcColor(grades[i]);
+            // Using Flexbox row div instead of <br> for perfect alignment
+            div.innerHTML += 
+                '<div class="legend-row">' +
+                    '<i class="box" style="border-color:' + col + '; background: transparent;"></i> ' +
+                    '<span>' + grades[i] + ' (' + labels[i] + ')</span>' +
+                '</div>';
+        }
+
+        // Temp
+        div.innerHTML += '<hr style="border:0; border-top:1px solid #ddd; margin: 10px 0;">';
+        div.innerHTML += '<h4>Surface Temp</h4>';
+        div.innerHTML += '<div class="grad-bar"></div>';
+        div.innerHTML += '<div class="grad-labels"><span>Cool</span><span>Hot</span></div>';
+        
+        // Canopy
+        div.innerHTML += 
+            '<div class="legend-row" style="margin-top:5px;">' +
+                '<i class="box filled" style="background:#228B22;"></i> ' +
+                '<span>Tree Canopy</span>' +
+            '</div>';
+
+        return div;
+    };
+    legend.addTo(map);
 
 </script>
 
