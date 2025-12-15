@@ -1,31 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lawrence MA: Climate & Redlining</title>
-    
+
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
-          crossorigin=""/>
-    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: sans-serif;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
         /* Legend Styles */
         .legend {
             background: white;
             padding: 10px;
             line-height: 1.5em;
             color: #333;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
             border-radius: 5px;
-            min-width: 180px; /* Increased width to prevent text wrapping */
+            min-width: 180px;
+            /* Increased width to prevent text wrapping */
         }
-        .legend h4 { margin: 0 0 8px; font-size: 14px; }
-        
+
+        .legend h4 {
+            margin: 0 0 8px;
+            font-size: 14px;
+        }
+
         /* Flex Container for Legend Rows (Fixes alignment issues) */
         .legend-row {
             display: flex;
@@ -38,12 +53,16 @@
             width: 18px;
             height: 18px;
             margin-right: 8px;
-            opacity: 1; 
+            opacity: 1;
             border: 3px solid;
             display: inline-block;
-            flex-shrink: 0; /* Prevents box from squishing if text wraps */
+            flex-shrink: 0;
+            /* Prevents box from squishing if text wraps */
         }
-        .legend i.filled { border: none; }
+
+        .legend i.filled {
+            border: none;
+        }
 
         /* Temperature Gradient */
         .grad-bar {
@@ -53,6 +72,7 @@
             margin-bottom: 5px;
             border: 1px solid #ccc;
         }
+
         .grad-labels {
             display: flex;
             justify-content: space-between;
@@ -60,172 +80,200 @@
             color: #666;
             margin-bottom: 10px;
         }
-        
+
         /* Info Box */
         .info-box {
             padding: 10px 15px;
             background: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
             border-radius: 5px;
             max-width: 300px;
         }
-        .info-box h3 { margin: 0 0 5px; color: #333; }
-        .info-box p { margin: 0; font-size: 14px; color: #555; }
+
+        .info-box h3 {
+            margin: 0 0 5px;
+            color: #333;
+        }
+
+        .info-box p {
+            margin: 0;
+            font-size: 14px;
+            color: #555;
+        }
     </style>
 </head>
+
 <body>
 
-<div id="map"></div>
+    <div id="map"></div>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
-        crossorigin=""></script>
 
-<script>
-    // --- 1. Map Setup ---
-    var map = L.map('map').setView([42.7070, -71.1631], 13);
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Leaflet Polyline Offset -->
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.min.js"></script>
 
-    // --- 2. Permanent Background Layer ---
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 20
-    }).addTo(map);
+    <script>
+        // --- 1. Map Setup ---
+        var map = L.map('map').setView([42.7070, -71.1631], 13);
 
-    // --- 3. Data Layers (Radio Button Options) ---
-    
-    // A. Tree Canopy
-    var canopyLayer = L.tileLayer('https://tiles.arcgis.com/tiles/StPsG80YRtvnlCJ8/arcgis/rest/services/TC_LMAmetro/MapServer/tile/{z}/{y}/{x}?cacheKey=a9b6a42a445cbfe4', {
-        opacity: 0.65,
-        attribution: 'Tree Canopy &copy; Groundwork Lawrence',
-        maxNativeZoom: 16,
-        maxZoom: 22
-    });
+        // --- 2. Permanent Background Layer ---
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
 
-    // B. Surface Temperature
-    var tempLayer = L.tileLayer('https://tiles.arcgis.com/tiles/StPsG80YRtvnlCJ8/arcgis/rest/services/LST_LMAmetro/MapServer/tile/{z}/{y}/{x}', {
-        opacity: 0.60,
-        attribution: 'Surface Temp &copy; Groundwork Lawrence',
-        maxNativeZoom: 16,
-        maxZoom: 22
-    });
+        // --- 3. Data Layers (Radio Button Options) ---
 
-    // C. No Data
-    var noDataLayer = L.layerGroup([]); 
+        // A. Tree Canopy
+        var canopyLayer = L.tileLayer('https://tiles.arcgis.com/tiles/StPsG80YRtvnlCJ8/arcgis/rest/services/TC_LMAmetro/MapServer/tile/{z}/{y}/{x}?cacheKey=a9b6a42a445cbfe4', {
+            opacity: 0.65,
+            attribution: 'Tree Canopy &copy; Groundwork Lawrence',
+            maxNativeZoom: 16,
+            maxZoom: 22
+        });
 
-    // --- 4. Redlining Layer (Overlay) ---
-    var redliningLayer = L.geoJSON(null, {
-        style: styleRedlining,
-        onEachFeature: onEachFeature
-    });
+        // B. Surface Temperature
+        var tempLayer = L.tileLayer('https://tiles.arcgis.com/tiles/StPsG80YRtvnlCJ8/arcgis/rest/services/LST_LMAmetro/MapServer/tile/{z}/{y}/{x}', {
+            opacity: 0.60,
+            attribution: 'Surface Temp &copy; Groundwork Lawrence',
+            maxNativeZoom: 16,
+            maxZoom: 22
+        });
 
-    fetch('lawrence_redlining.geojson')
-        .then(response => response.json())
-        .then(data => {
-            redliningLayer.addData(data);
-            redliningLayer.addTo(map); 
-        })
-        .catch(err => console.error("Error loading GeoJSON:", err));
+        // C. No Data
+        var noDataLayer = L.layerGroup([]);
 
-    // --- 5. Layer Controls ---
-    var dataLayers = {
-        "Tree Canopy": canopyLayer,
-        "Surface Temperature": tempLayer,
-        "None (Streets Only)": noDataLayer
-    };
+        // --- 4. Redlining Layer (Overlay) ---
+        var redliningLayer = L.geoJSON(null, {
+            style: styleRedlining,
+            onEachFeature: onEachFeature
+        });
 
-    var overlays = {
-        "Redlining Zones": redliningLayer
-    };
+        fetch('lawrence_redlining.geojson')
+            .then(response => response.json())
+            .then(data => {
+                redliningLayer.addData(data);
+                redliningLayer.addTo(map);
+            })
+            .catch(err => console.error("Error loading GeoJSON:", err));
 
-    canopyLayer.addTo(map);
-    L.control.layers(dataLayers, overlays, { collapsed: false }).addTo(map);
-
-    // --- 6. Styling & Legends ---
-
-    function getHolcColor(grade) {
-        switch (grade) {
-            case 'A': return '#76a865'; 
-            case 'B': return '#7cb5bd'; 
-            case 'C': return '#e6c236'; 
-            case 'D': return '#d9838d'; 
-            default: return '#cccccc';
-        }
-    }
-
-    function styleRedlining(feature) {
-        var color = getHolcColor(feature.properties.grade);
-        return {
-            color: color,       
-            weight: 4,          
-            opacity: 1,         
-            fillColor: color,   
-            fillOpacity: 0.0,   
-            interactive: true   
+        // --- 5. Layer Controls ---
+        var dataLayers = {
+            "Tree Canopy": canopyLayer,
+            "Surface Temperature": tempLayer,
+            "None (Streets Only)": noDataLayer
         };
-    }
 
-    function onEachFeature(feature, layer) {
-        layer.setStyle({ fillOpacity: 0.01 }); 
-        var content = `
+        var overlays = {
+            "Redlining Zones": redliningLayer
+        };
+
+        canopyLayer.addTo(map);
+        L.control.layers(dataLayers, overlays, { collapsed: false }).addTo(map);
+
+        // --- 6. Styling & Legends ---
+
+        function getHolcColor(grade) {
+            switch (grade) {
+                case 'A': return '#76a865';
+                case 'B': return '#7cb5bd';
+                case 'C': return '#e6c236';
+                case 'D': return '#d9838d';
+                default: return '#cccccc';
+            }
+        }
+
+        function getHolcOffset(grade) {
+            // Stagger offsets so lines don't overlap. 
+            // Positive/Negative values might be needed depending on polygon winding, 
+            // but consistently different values will separate them.
+            switch (grade) {
+                case 'A': return 0;
+                case 'B': return -3;
+                case 'C': return -6;
+                case 'D': return -9;
+                default: return 0;
+            }
+        }
+
+        function styleRedlining(feature) {
+            var color = getHolcColor(feature.properties.grade);
+            var offset = getHolcOffset(feature.properties.grade);
+            return {
+                color: color,
+                weight: 4,
+                opacity: 1,
+                fillColor: color,
+                fillOpacity: 0.0,
+                interactive: true,
+                offset: offset
+            };
+        }
+
+        function onEachFeature(feature, layer) {
+            layer.setStyle({ fillOpacity: 0.01 });
+            var content = `
             <strong>HOLC Grade: ${feature.properties.grade}</strong><br>
             Area ID: ${feature.properties.label || feature.properties.holc_id}<br>
             City: ${feature.properties.city}
         `;
-        layer.bindPopup(content);
-    }
+            layer.bindPopup(content);
+        }
 
-    // Info Box
-    var info = L.control({ position: 'topright' });
-    info.onAdd = function(map) {
-        var div = L.DomUtil.create('div', 'info-box');
-        div.innerHTML = `
+        // Info Box
+        var info = L.control({ position: 'topright' });
+        info.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'info-box');
+            div.innerHTML = `
             <h3>Lawrence, MA</h3>
             <p><strong>Climate & Equity Overlay</strong></p>
         `;
-        return div;
-    };
-    info.addTo(map);
+            return div;
+        };
+        info.addTo(map);
 
-    // Legend
-    var legend = L.control({position: 'bottomright'});
-    legend.onAdd = function (map) {
-        var div = L.DomUtil.create('div', 'info legend');
-        
-        // Redlining
-        div.innerHTML += '<h4>Redlining Zones</h4>';
-        var grades = ['A', 'B', 'C', 'D'];
-        var labels = ['Best', 'Desirable', 'Declining', 'Hazardous'];
-        
-        for (var i = 0; i < grades.length; i++) {
-            var col = getHolcColor(grades[i]);
-            // Using Flexbox row div instead of <br> for perfect alignment
-            div.innerHTML += 
-                '<div class="legend-row">' +
+        // Legend
+        var legend = L.control({ position: 'bottomright' });
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'info legend');
+
+            // Redlining
+            div.innerHTML += '<h4>Redlining Zones</h4>';
+            var grades = ['A', 'B', 'C', 'D'];
+            var labels = ['Best', 'Desirable', 'Declining', 'Hazardous'];
+
+            for (var i = 0; i < grades.length; i++) {
+                var col = getHolcColor(grades[i]);
+                // Using Flexbox row div instead of <br> for perfect alignment
+                div.innerHTML +=
+                    '<div class="legend-row">' +
                     '<i class="box" style="border-color:' + col + '; background: transparent;"></i> ' +
                     '<span>' + grades[i] + ' (' + labels[i] + ')</span>' +
-                '</div>';
-        }
+                    '</div>';
+            }
 
-        // Temp
-        div.innerHTML += '<hr style="border:0; border-top:1px solid #ddd; margin: 10px 0;">';
-        div.innerHTML += '<h4>Surface Temp</h4>';
-        div.innerHTML += '<div class="grad-bar"></div>';
-        div.innerHTML += '<div class="grad-labels"><span>Cool</span><span>Hot</span></div>';
-        
-        // Canopy
-        div.innerHTML += 
-            '<div class="legend-row" style="margin-top:5px;">' +
+            // Temp
+            div.innerHTML += '<hr style="border:0; border-top:1px solid #ddd; margin: 10px 0;">';
+            div.innerHTML += '<h4>Surface Temp</h4>';
+            div.innerHTML += '<div class="grad-bar"></div>';
+            div.innerHTML += '<div class="grad-labels"><span>Cool</span><span>Hot</span></div>';
+
+            // Canopy
+            div.innerHTML +=
+                '<div class="legend-row" style="margin-top:5px;">' +
                 '<i class="box filled" style="background:#228B22;"></i> ' +
                 '<span>Tree Canopy</span>' +
-            '</div>';
+                '</div>';
 
-        return div;
-    };
-    legend.addTo(map);
+            return div;
+        };
+        legend.addTo(map);
 
-</script>
+    </script>
 
 </body>
+
 </html>
